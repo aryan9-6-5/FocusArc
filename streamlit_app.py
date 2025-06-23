@@ -121,3 +121,4 @@ if uploaded_file:
         st.info("Please select a day with available session data to view charts.")
 else:
     st.info("👈 Please upload your time log CSV from the sidebar to begin.")
+    st.info("💡 You can find a sample CSV in the app folder.")
