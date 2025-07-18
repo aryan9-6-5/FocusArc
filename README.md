@@ -1,10 +1,10 @@
-# 🧠 Focus Arc
+# Focus Arc
 
 **Focus Arc** is a Streamlit web application designed to help you visualize your time, focus, and distractions based on your personal time logs. It provides insightful cognitive productivity metrics and interactive charts to help you understand and improve your daily focus habits.
 
 ---
 
-## 🚀 Features
+## Features
 
 - Upload your personal **Time Log CSV** to analyze your activities.
 - Filter by user ID (supports multiple users in one dataset).
@@ -25,7 +25,7 @@
 
 ---
 
-## 🛠️ How It Works
+## How It Works
 
 1. Upload your time log CSV file in the sidebar.  
 2. Select a user ID from the available list.  
@@ -36,7 +36,7 @@
 
 ---
 
-## 📁 CSV Data Format Requirements
+## CSV Data Format Requirements
 
 Your CSV file should include the following columns:
 
@@ -48,7 +48,7 @@ Your CSV file should include the following columns:
 
 ---
 
-## 💡 Future Improvements
+## Future Improvements
 
 - Dynamic user list extraction from CSV instead of static user ID selection.  
 - Support for multiple file formats (Excel, JSON).  
@@ -58,7 +58,7 @@ Your CSV file should include the following columns:
 
 ---
 
-## ⚙️ Installation & Running
+## Installation & Running
 
 1. Clone this repository.  
 2. Install dependencies:
