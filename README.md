@@ -66,4 +66,6 @@ Your CSV file should include the following columns:
    ```bash
    pip install -r requirements.txt
 ## Run the app:
-  streamlit run app.py
+   ```bash
+   streamlit run app.py
+
