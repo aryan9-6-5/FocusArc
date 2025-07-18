@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from datetime import datetime, timedelta
 
 from app.data_loader import load_csv, filter_by_user, convert_to_sessions
@@ -25,43 +24,77 @@ with st.sidebar:
 st.title("📊 Focus Arc – Cognitive Productivity Insights")
 
 if uploaded_file:
-    df = load_csv(uploaded_file)
+    try:
+        df = load_csv(uploaded_file)
+    except Exception as e:
+        st.error(f"❌ Could not read uploaded file: {e}")
+        st.stop()
     user_df = filter_by_user(df, user_id)
 
-    today = datetime.today().date()
-    if report_range == "Yesterday":
-        start_date = today - timedelta(days=1)
-        end_date = start_date
-    elif report_range == "Last 7 Days":
-        start_date = today - timedelta(days=7)
-        end_date = today
+    if not user_df.empty:
+        user_df['date'] = user_df['start_time'].dt.date
+        data_min_date = user_df['date'].min()
+        data_max_date = user_df['date'].max()
     else:
-        start_date = today - timedelta(days=30)
-        end_date = today
+        st.warning(" No data found for this user.")
+        st.stop()
 
-    date_mask = (user_df['start_time'].dt.date >= start_date) & (user_df['start_time'].dt.date <= end_date)
+    today = datetime.today().date()
+
+    # Determine date range based on report selection
+    if report_range == "Yesterday":
+        requested_start = today - timedelta(days=1)
+        requested_end = requested_start
+    elif report_range == "Last 7 Days":
+        requested_end = today
+        requested_start = today - timedelta(days=6)
+    else:
+        first_day_this_month = today.replace(day=1)
+        last_day_last_month = first_day_this_month - timedelta(days=1)
+        first_day_last_month = last_day_last_month.replace(day=1)
+        requested_start = first_day_last_month
+        requested_end = last_day_last_month
+
+    date_mask = (user_df['date'] >= requested_start) & (user_df['date'] <= requested_end)
     range_df = user_df[date_mask]
 
-    sessions = convert_to_sessions(range_df)
+    if range_df.empty:
+        if report_range == "Yesterday":
+            fallback_date = data_max_date
+            st.warning(f" No data for Yesterday ({requested_start}).\n Showing the last recorded day: {fallback_date}.")
+            fallback_mask = (user_df['date'] == fallback_date)
+            range_df = user_df[fallback_mask]
+        elif report_range == "Last 7 Days":
+            fallback_end = data_max_date
+            fallback_start = fallback_end - timedelta(days=6)
+            st.warning(f" No data for Last 7 Days ({requested_start}–{requested_end}).\n Showing last recorded week: {fallback_start}–{fallback_end}.")
+            range_df = user_df[(user_df['date'] >= fallback_start) & (user_df['date'] <= fallback_end)]
+        else:
+            fallback_end = data_max_date
+            fallback_start = fallback_end - timedelta(days=29)
+            st.warning(f" No data for the last 30 days ({requested_start}–{requested_end}).\n Showing last recorded month: {fallback_start}–{fallback_end}.")
+            range_df = user_df[(user_df['date'] >= fallback_start) & (user_df['date'] <= fallback_end)]
 
+    sessions = convert_to_sessions(range_df)
+    score_dict = calculate_daily_metrics(sessions)
     unique_dates = sorted({s.start.date() for s in sessions})
+
     if unique_dates:
         selected_day = st.selectbox("📅 Pick a Day for Timeline View", options=unique_dates)
         day_sessions = [s for s in sessions if s.start.date() == selected_day]
+        summary = generate_daily_summary(score_dict, target_day=selected_day)
 
-        score_dict = calculate_daily_metrics(sessions)
         st.subheader("🧠 Daily Insight Summary")
-        summary = generate_daily_summary(score_dict)
         st.text_area("Summary", summary, height=180)
 
         with st.expander("ℹ️ What does this summary mean?"):
             st.markdown("""
             This summary is generated using your productivity score, number of task switches,
-            mood, and distractions. It compares today's data with the previous day to give personalized feedback.
+            mood, and distractions. It compares the selected day's data with the previous recorded day to give personalized feedback.
             """)
 
         st.subheader("🍰 Time Distribution by Activity Type")
-        st.pyplot(plot_category_pie(sessions))
+        st.pyplot(plot_category_pie(day_sessions))
 
         with st.expander("📘 About This Chart"):
             st.markdown("""
@@ -106,7 +139,6 @@ if uploaded_file:
                 """)
         else:
             st.info("📈 Not enough data for trends — try selecting 'Last 7 Days' or 'Full Month'.")
-
     else:
         st.info("Please select a day with available session data to view charts.")
 else:
